@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipment Management Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container my-5">
+    <h1 class="mb-4 text-center">Equipment Management Dashboard</h1>
+
+    <!-- Add New Equipment Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">Add New Equipment</div>
+        <div class="card-body">
+            <form id="addEquipmentForm" class="row g-3">
+                <div class="col-md-5">
+                    <label for="eqName" class="form-label">Name:</label>
+                    <input type="text" class="form-control" id="eqName" placeholder="e.g. MacBook Pro" required>
+                </div>
+                <div class="col-md-5">
+                    <label for="eqType" class="form-label">Type:</label>
+                    <select class="form-select" id="eqType">
+                        <option value="Laptop">Laptop</option>
+                        <option value="Monitor">Monitor</option>
+                        <option value="Accessory">Accessory</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-success w-100">Add Equipment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assign Equipment Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-secondary text-white">Assign Equipment</div>
+        <div class="card-body">
+            <form id="assignEquipmentForm" class="row g-3">
+                <div class="col-md-5">
+                    <label for="assignEqId" class="form-label">Equipment ID:</label>
+                    <input type="number" class="form-control" id="assignEqId" placeholder="e.g. 1" required>
+                </div>
+                <div class="col-md-5">
+                    <label for="employeeSelect" class="form-label">Employee:</label>
+                    <select class="form-select" id="employeeSelect" required>
+                        <option value="">-- Loading Employees --</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Assign</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Equipment Inventory Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">Equipment Inventory</div>
+        <div class="card-body">
+            <table class="table table-striped table-hover">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Assigned Employee ID</th>
+                </tr>
+                </thead>
+                <tbody id="inventoryTableBody">
+                <!-- Data populated dynamically via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript to load employees and handle forms -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        loadEmployees();
+        loadEquipment();
+
+        // Handle Add Equipment
+        document.getElementById("addEquipmentForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const name = document.getElementById("eqName").value;
+            const type = document.getElementById("eqType").value;
+
+            fetch('/api/equipment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, type: type, status: 'AVAILABLE' })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert('Equipment added successfully!');
+                    document.getElementById("addEquipmentForm").reset();
+                    loadEquipment();
+                })
+                .catch(err => console.error('Error adding equipment:', err));
+        });
+
+        // Handle Assign Equipment
+        document.getElementById("assignEquipmentForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const eqId = document.getElementById("assignEqId").value;
+            const empId = document.getElementById("employeeSelect").value;
+
+            fetch(`/api/equipment/${eqId}/assign/${empId}`, {
+                method: 'POST'
+            })
+                .then(() => {
+                    alert('Equipment assigned successfully!');
+                    loadEquipment();
+                })
+                .catch(err => console.error('Error assigning equipment:', err));
+        });
+    });
+
+    function loadEmployees() {
+        fetch('/api/employees')
+            .then(response => response.json())
+            .then(employees => {
+                const select = document.getElementById("employeeSelect");
+                select.innerHTML = '<option value="">-- Select Employee --</option>';
+                employees.forEach(emp => {
+                    const option = document.createElement("option");
+                    option.value = emp.id;
+                    option.textContent = `${emp.name} (${emp.email})`;
+                    select.appendChild(option);
+                });
+            })
+            .catch(err => {
+                console.error('Error loading employees:', err);
+                document.getElementById("employeeSelect").innerHTML = '<option value="">Failed to load</option>';
+            });
+    }
+
+    function loadEquipment() {
+        fetch('/api/equipment')
+            .then(response => response.json())
+            .then(equipments => {
+                const tbody = document.getElementById("inventoryTableBody");
+                tbody.innerHTML = '';
+                equipments.forEach(eq => {
+                    const row = `<tr>
+                            <td>${eq.id}</td>
+                            <td>${eq.name}</td>
+                            <td>${eq.type || 'N/A'}</td>
+                            <td><span class="badge bg-${eq.status === 'ASSIGNED' ? 'warning' : 'success'}">${eq.status || 'AVAILABLE'}</span></td>
+                            <td>${eq.employee ? eq.employee.id : 'None'}</td>
+                        </tr>`;
+                    tbody.innerHTML += row;
+                });
+            })
+            .catch(err => console.error('Error loading equipment:', err));
+    }
+</script>
+</body>
+</html>
