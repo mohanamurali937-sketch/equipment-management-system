@@ -30,4 +30,5 @@ public class EquipmentService {
 
         equipmentRepository.save(equipment);
     }
+
 }

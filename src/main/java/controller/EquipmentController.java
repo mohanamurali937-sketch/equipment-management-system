@@ -35,5 +35,10 @@ public class EquipmentController {
     @PostMapping("/{equipmentId}/assign/{employeeId}")
     public void assignEquipment(@PathVariable Long equipmentId, @PathVariable Long employeeId) {
         equipmentService.assignEquipment(employeeId, equipmentId);
+
+    }
+    @DeleteMapping("/{id}")
+    public void deleteEquipment(@PathVariable Long id) {
+        equipmentRepository.deleteById(id);
     }
 }
